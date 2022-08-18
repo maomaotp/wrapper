@@ -1,0 +1,9 @@
+#!/usr/bin/env -S bash
+
+for sol in *.sol; do
+  echo ./scripts/compile $sol
+  ./scripts/compile $sol
+done
+
+cp ./build/*Wrapper.abi src/abi/Wrapper.json
+deno fmt src/abi/Wrapper.json
