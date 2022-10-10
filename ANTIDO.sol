@@ -38,7 +38,7 @@ contract ANTIDO is Ownable {
     }
 
     function UperX() public view returns (uint256) {
-        return 333/50 ** this.exponent();
+        return 10 ** this.exponent();
     }
 
     function withdrawU() public onlyOwner {
