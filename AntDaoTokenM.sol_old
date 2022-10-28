@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT-only
 pragma solidity ^0.8.7;
 
+interface IBox {
+    function isMintOrAddLiquidity() external view returns(bool);
+}
+
 abstract contract Context {
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
@@ -789,14 +793,6 @@ library SafeMath {
     }
 }
 
-interface IBox {
-    function isMintOrAddLiquidity() external view returns(bool);
-}
-
-interface IFarmWithWrap {
-    function isDeposit() external view returns(bool);
-}
-
 contract AntDaoToken is ERC20, AccessControlled {
     using SafeMath for uint256;
 
@@ -807,8 +803,6 @@ contract AntDaoToken is ERC20, AccessControlled {
     address public feeReceiver;
 
     address public wrapToken;
-
-    address public farmAddress;
     
     address public boxAddress;
 
@@ -827,17 +821,12 @@ contract AntDaoToken is ERC20, AccessControlled {
         uint256 indexed feeRatio
     );
 
-    event AddressWhiteChanged(
-        address indexed targetAddress,
-        int8 indexed isWhite
-    );
-
     mapping(address => int8) internal whiteTable;
 
     mapping(address => int8) internal pairTable;
 
     constructor() 
-      ERC20("AntDao", "ANT")
+      ERC20("T5 Token", "T5")
       AccessControlled(msg.sender) 
     {
         feeRatio = 10;
@@ -845,19 +834,27 @@ contract AntDaoToken is ERC20, AccessControlled {
         whiteTable[feeReceiver] = 1;
         whiteTable[address(this)] = 1;
         
-        boxAddress = address(0x05dCaF89dFA5A09d832aC4e7FE01f75e82643F60);    
+        boxAddress = address(0x8fbA4265785c56110B1277d6B23dD43B3797b3A8);
+
+        // string memory name = "T3 Token";
+        // string memory symbol = "T3";
+
+        // bytes32 warpTokenSalt = keccak256(abi.encode(address(this), name, symbol));
+        
+        // WrapToken wrap = new WrapToken{salt: warpTokenSalt}( address(this), name, symbol, 18);
+        // wrapToken = address(wrap);
+
+
+        //whiteTable[wrapToken] = 1;    
+    
     }
 
     function setWrapToken(address _token) external  onlyAdmin {
         wrapToken = _token;
     }
 
-    function setBoxAddress(address _Address) external  onlyAdmin {
-        boxAddress = _Address;
-    }
-
-    function setFarmAddress(address _Address) external  onlyAdmin {
-        farmAddress = _Address;
+    function setBoxAddress(address _boxAddress) external  onlyAdmin {
+        boxAddress = _boxAddress;
     }
 
     function setFeeRatio(uint256 _feeRatio) external  onlyAdmin {
@@ -865,30 +862,19 @@ contract AntDaoToken is ERC20, AccessControlled {
         emit FeeRatioChanged(_feeRatio);
     }
 
-    function setAddressIsWhite(address _address, int8 _isWhite) external onlyAdmin {
-        if(whiteTable[_address] == _isWhite) {
-            return;
-        }
-
-        whiteTable[_address] = _isWhite;
-
-        emit AddressWhiteChanged(_address, _isWhite);
-    }
-
-    function isAddressWhite(address _address) external view returns(int8 isWhite)  {
-        isWhite = whiteTable[_address];
-    }
-
     function setFeeReceiver(address _feeReceiver) external  onlyAdmin {
-        if(feeReceiver == _feeReceiver) {
-            return;
-        }
-
-        this.setAddressIsWhite(feeReceiver, 0);
-        feeReceiver = _feeReceiver;
-        this.setAddressIsWhite(feeReceiver, 1);
         
+        whiteTable[feeReceiver] = 0;
+
+        feeReceiver = _feeReceiver;
+
+        whiteTable[feeReceiver] = 1;
+
         emit FeeReceiverChanged(_feeReceiver);
+    }
+
+    function setAddressIsWhite(address _address, int8 _isWhite) external onlyAdmin {
+        whiteTable[_address] = _isWhite;
     }
 
     function setPairAddress(address _address, int8 _isWhite) external onlyAdmin {
@@ -910,12 +896,6 @@ contract AntDaoToken is ERC20, AccessControlled {
 
     function isFeeOn(address _from, address _to, uint256 _amount) internal view returns (bool) {
         if(_to == wrapToken) {
-            if (farmAddress != address(0)) {
-                if (IFarmWithWrap(farmAddress).isDeposit()) {
-                    return false;
-                }
-            }
-
             return !IBox(boxAddress).isMintOrAddLiquidity() && 
             whiteTable[_from] == 0 &&
             _amount > 0;
