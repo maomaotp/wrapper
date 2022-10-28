@@ -884,9 +884,13 @@ contract AntDaoToken is ERC20, AccessControlled {
             return;
         }
 
-        this.setAddressIsWhite(feeReceiver, 0);
+        whiteTable[feeReceiver] = 0;
+        emit AddressWhiteChanged(feeReceiver, 0);
+
         feeReceiver = _feeReceiver;
-        this.setAddressIsWhite(feeReceiver, 1);
+        
+        whiteTable[feeReceiver] = 1;
+        emit AddressWhiteChanged(feeReceiver, 1);
         
         emit FeeReceiverChanged(_feeReceiver);
     }
